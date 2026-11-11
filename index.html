@@ -579,18 +579,19 @@ function renderHome(){
   placeHero();bindMap();
 }
 function placeHero(){const h=$('#hero');if(!h)return;h.style.left=hero.x+'%';h.style.top=hero.y+'%'}
-function walkTo(i){const p=pos(i);hero.tx=p[0];hero.ty=p[1];hero.cool=null;hero.goal=CATS[i].id;start()}
+function walkTo(i){const id=CATS[i].id,p=pos(i);if(hero.cool===id){hero.goal=null;hero.tx=hero.ty=null;location.hash=id;return} /* 서 있는 건물을 다시 누르면 바로 입장 */
+  hero.tx=p[0];hero.ty=p[1];hero.goal=id;start()}
 function bindMap(){
   const map=$('#map');let drag=false;
   const pt=e=>{const r=map.getBoundingClientRect();return [Math.max(4,Math.min(96,(e.clientX-r.left)/r.width*100)),Math.max(10,Math.min(97,(e.clientY-r.top)/r.height*100))]};
   /* 마우스·펜: 누른 채 끌면 따라와요. 손가락: 화면 스크롤을 막지 않도록 톡 누르기만 받아요. */
-  map.addEventListener('pointerdown',e=>{if(e.button||e.pointerType==='touch'||e.target.closest('.spot'))return;drag=true;hero.goal=null;try{map.setPointerCapture(e.pointerId)}catch(_){ }[hero.tx,hero.ty]=pt(e);hero.cool=null;start()});
+  map.addEventListener('pointerdown',e=>{if(e.button||e.pointerType==='touch'||e.target.closest('.spot'))return;drag=true;hero.goal=null;try{map.setPointerCapture(e.pointerId)}catch(_){ }[hero.tx,hero.ty]=pt(e);start()});
   map.addEventListener('pointermove',e=>{if(drag){[hero.tx,hero.ty]=pt(e);start()}});
   const up=()=>{drag=false};map.addEventListener('pointerup',up);map.addEventListener('pointercancel',up);
   map.addEventListener('click',e=>{const s=e.target.closest('.spot');if(s){walkTo(+s.dataset.i);return}
     /* 빈 곳을 누르면 그 자리로, 건물 근처면 그 건물로 */
     const [x,y]=pt(e),W=map.clientWidth,H=map.clientHeight;let best=-1,bd=1e9;CATS.forEach((c,i)=>{const p=pos(i),d=Math.hypot((p[0]-x)/100*W,(p[1]-6-y)/100*H);if(d<bd){bd=d;best=i}});
-    if(bd<Math.max(44,W*.07))walkTo(best);else{hero.tx=x;hero.ty=y;hero.cool=null;hero.goal=null;start()}});
+    if(bd<Math.max(44,W*.07))walkTo(best);else{hero.tx=x;hero.ty=y;hero.goal=null;start()}});
   document.querySelectorAll('.who button').forEach(b=>b.onclick=()=>{S.who=b.dataset.who;save();document.querySelectorAll('.who button').forEach(x=>x.setAttribute('aria-pressed',x===b));$('#hero').innerHTML=heroSvg()});
   /* 지도 아래 바로가기도 캐릭터가 걸어가서 들어가요 */
   document.querySelectorAll('.quick a').forEach(l=>l.addEventListener('click',e=>{const i=CATS.findIndex(c=>'#'+c.id===l.getAttribute('href'));if(i<0||matchMedia('(prefers-reduced-motion:reduce)').matches)return;e.preventDefault();map.scrollIntoView({block:'center',behavior:'smooth'});walkTo(i)}));
@@ -806,7 +807,7 @@ async function exportHtml(){
 }
 $('#ribbon').addEventListener('click',e=>{if(e.target.id==='exp')exportHtml()});
 function render(){renderRibbon();const c=curCat();if(c&&c.calc)renderTax(c);else if(c)renderCat(c);else renderHome()}
-addEventListener('hashchange',()=>{const c=curCat();render();if(c)scrollTo(0,0);else{const i=CATS.findIndex(x=>x.id===hero.cool);if(i>=0){const p=pos(i);hero.x=p[0];hero.y=p[1];placeHero()}}});
+addEventListener('hashchange',()=>{const c=curCat();if(c){hero.cool=c.id;hero.goal=null;hero.tx=hero.ty=null}render();if(c)scrollTo(0,0);else{hero.tx=hero.ty=null;hero.goal=null;keys={};const i=CATS.findIndex(x=>x.id===hero.cool);if(i>=0){const p=pos(i);hero.x=p[0];hero.y=p[1];placeHero()}}});
 let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!curCat())renderHome()},200)});
 render();
 
